@@ -1,8 +1,8 @@
 use super::{PitchSpace, EqualTempermentSemitone};
 
-struct MIDILogLinearPitchSpace;
+struct MIDIPitchSpace;
 
-impl PitchSpace for MIDILogLinearPitchSpace {
+impl PitchSpace for MIDIPitchSpace {
     type Pos = f32;
     type Dist = f32;
     type Pitch = EqualTempermentSemitone;
@@ -23,19 +23,19 @@ impl PitchSpace for MIDILogLinearPitchSpace {
 
 
 #[cfg(test)]
-mod log_linear_tests {
+mod tests {
     use super::*;
     use assert_approx_eq::assert_approx_eq;
 
     #[test]
     fn from_frequency() {
-        assert_approx_eq!(MIDILogLinearPitchSpace::from_frequency(261.63).0, 60.0, 0.001);
-        assert_approx_eq!(MIDILogLinearPitchSpace::from_frequency(440.0).0, 69.0, 0.001);
+        assert_approx_eq!(MIDIPitchSpace::from_frequency(261.63).0, 60.0, 0.001);
+        assert_approx_eq!(MIDIPitchSpace::from_frequency(440.0).0, 69.0, 0.001);
     }
 
     #[test]
     fn distance() {
-        assert_approx_eq!(MIDILogLinearPitchSpace::distance(
+        assert_approx_eq!(MIDIPitchSpace::distance(
             &EqualTempermentSemitone(60.0),
             &EqualTempermentSemitone(69.0)),
             9.0,
@@ -45,9 +45,9 @@ mod log_linear_tests {
 
     #[test]
     fn to_frequency() {
-        let f = MIDILogLinearPitchSpace::to_frequency(&EqualTempermentSemitone(60.0));
+        let f = MIDIPitchSpace::to_frequency(&EqualTempermentSemitone(60.0));
         assert_approx_eq!(f, 261.63, 0.01);
-        let f = MIDILogLinearPitchSpace::to_frequency(&EqualTempermentSemitone(69.0));
+        let f = MIDIPitchSpace::to_frequency(&EqualTempermentSemitone(69.0));
         assert_approx_eq!(f, 440.0, 0.001);
     }
 }

@@ -2,7 +2,7 @@ use std::cmp::Ordering;
 
 use ordered_float::OrderedFloat;
 
-mod log_linear;
+mod midi;
 mod chromatic;
 
 trait Pitch: Eq + Ord {}
