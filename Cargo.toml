@@ -5,7 +5,7 @@ authors = ["Alec Deason <alec50@tinycountry.com>"]
 edition = "2018"
 
 [dependencies]
-num = "0.2.0"
+ordered-float = "1.0.1"
 
 [dev-dependencies]
 assert_approx_eq = "1.1.0"

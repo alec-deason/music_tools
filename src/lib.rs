@@ -1,5 +1,4 @@
-extern crate num;
-
+extern crate ordered_float;
 mod pitch;
 
 #[cfg(test)]
