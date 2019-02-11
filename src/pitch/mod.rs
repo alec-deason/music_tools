@@ -48,56 +48,56 @@ impl PitchClass for IntegerPitchClass {}
 
 
 #[derive(Copy, Clone, Debug)]
-struct EqualTempermentSemitone(f32);
-impl Pitch for EqualTempermentSemitone {}
+struct Semitone(f32);
+impl Pitch for Semitone {}
 
-impl ::std::ops::Add for EqualTempermentSemitone {
-    type Output = EqualTempermentSemitone;
+impl ::std::ops::Add for Semitone {
+    type Output = Semitone;
 
-    fn add(self, rhs: EqualTempermentSemitone) -> Self::Output {
-        EqualTempermentSemitone(self.0 + rhs.0)
+    fn add(self, rhs: Semitone) -> Self::Output {
+        Semitone(self.0 + rhs.0)
     }
 }
 
-impl ::std::ops::Sub for EqualTempermentSemitone {
-    type Output = EqualTempermentSemitone;
+impl ::std::ops::Sub for Semitone {
+    type Output = Semitone;
 
-    fn sub(self, rhs: EqualTempermentSemitone) -> Self::Output {
-        EqualTempermentSemitone(self.0 - rhs.0)
+    fn sub(self, rhs: Semitone) -> Self::Output {
+        Semitone(self.0 - rhs.0)
     }
 }
 
-impl ::std::ops::Add<f32> for EqualTempermentSemitone {
-    type Output = EqualTempermentSemitone;
+impl ::std::ops::Add<f32> for Semitone {
+    type Output = Semitone;
 
     fn add(self, rhs: f32) -> Self::Output {
-        EqualTempermentSemitone(self.0 + rhs)
+        Semitone(self.0 + rhs)
     }
 }
 
-impl ::std::ops::Sub<f32> for EqualTempermentSemitone {
-    type Output = EqualTempermentSemitone;
+impl ::std::ops::Sub<f32> for Semitone {
+    type Output = Semitone;
 
     fn sub(self, rhs: f32) -> Self::Output {
-        EqualTempermentSemitone(self.0 - rhs)
+        Semitone(self.0 - rhs)
     }
 }
 
-impl PartialEq for EqualTempermentSemitone {
-    fn eq(&self, other: &EqualTempermentSemitone) -> bool {
+impl PartialEq for Semitone {
+    fn eq(&self, other: &Semitone) -> bool {
         self.0 == other.0
     }
 }
-impl Eq for EqualTempermentSemitone {}
+impl Eq for Semitone {}
 
-impl ::std::cmp::PartialOrd for EqualTempermentSemitone {
-    fn partial_cmp(&self, other: &EqualTempermentSemitone) -> Option<Ordering> {
+impl ::std::cmp::PartialOrd for Semitone {
+    fn partial_cmp(&self, other: &Semitone) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl Ord for EqualTempermentSemitone {
-    fn cmp(&self, other: &EqualTempermentSemitone) -> Ordering {
+impl Ord for Semitone {
+    fn cmp(&self, other: &Semitone) -> Ordering {
         OrderedFloat(self.0).cmp(&OrderedFloat(other.0))
     }
 }
