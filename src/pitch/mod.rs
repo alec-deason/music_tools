@@ -17,6 +17,16 @@ trait PitchSpace {
     fn distance(a: &Self::Pitch, b: &Self::Pitch) -> Self::Dist;
 }
 
+trait PitchConverter
+   where
+      Self::PitchSpace: PitchSpace,
+      Self::PitchClassSpace: PitchClassSpace {
+    type PitchSpace;
+    type PitchClassSpace;
+
+    fn to_pitch(p: &PitchClassOctave<Self::PitchClassSpace>) -> <<Self as PitchConverter>::PitchSpace as PitchSpace>::Pitch;
+}
+
 trait PitchClass: Eq {}
 trait PitchClassSpace {
     type PitchClass: PitchClass;
@@ -29,7 +39,7 @@ trait PitchClassSpace {
 }
 
 type Octave = usize;
-struct PitchOctave<C: PitchClassSpace>(C::PitchClass, Octave);
+struct PitchClassOctave<C: PitchClassSpace>(C::PitchClass, Octave);
 
 
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug)]
@@ -37,6 +47,7 @@ struct IntegerPitchClass(usize);
 impl PitchClass for IntegerPitchClass {}
 
 
+#[derive(Copy, Clone, Debug)]
 struct EqualTempermentSemitone(f32);
 impl Pitch for EqualTempermentSemitone {}
 

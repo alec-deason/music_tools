@@ -1,6 +1,6 @@
 use super::{PitchClassSpace, IntegerPitchClass};
 
-struct ChromaticPitchClassSpace;
+pub struct ChromaticPitchClassSpace;
 
 impl PitchClassSpace for ChromaticPitchClassSpace {
     type PitchClass = IntegerPitchClass;
