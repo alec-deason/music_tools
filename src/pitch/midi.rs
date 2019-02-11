@@ -1,7 +1,7 @@
 use super::{PitchSpace, Semitone, PitchConverter, PitchClassOctave};
 use super::chromatic::ChromaticPitchClassSpace;
 
-struct MIDIPitchSpace;
+pub struct MIDIPitchSpace;
 
 impl PitchSpace for MIDIPitchSpace {
     type Pos = f32;

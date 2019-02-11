@@ -2,12 +2,12 @@ use std::cmp::Ordering;
 
 use ordered_float::OrderedFloat;
 
-mod midi;
-mod chromatic;
+pub mod midi;
+pub mod chromatic;
 
 trait Pitch: Eq + Ord {}
 
-trait PitchSpace {
+pub trait PitchSpace {
     type Pos;
     type Dist;
     type Pitch: Pitch;
@@ -17,7 +17,7 @@ trait PitchSpace {
     fn distance(a: &Self::Pitch, b: &Self::Pitch) -> Self::Dist;
 }
 
-trait PitchConverter
+pub trait PitchConverter
    where
       Self::PitchSpace: PitchSpace,
       Self::PitchClassSpace: PitchClassSpace {
@@ -27,8 +27,8 @@ trait PitchConverter
     fn to_pitch(p: &PitchClassOctave<Self::PitchClassSpace>) -> <<Self as PitchConverter>::PitchSpace as PitchSpace>::Pitch;
 }
 
-trait PitchClass: Eq {}
-trait PitchClassSpace {
+pub trait PitchClass: Eq + Ord + Copy + Clone {}
+pub trait PitchClassSpace {
     type PitchClass: PitchClass;
 
     fn classes() -> Vec<Self::PitchClass>;
@@ -39,16 +39,23 @@ trait PitchClassSpace {
 }
 
 type Octave = usize;
-struct PitchClassOctave<C: PitchClassSpace>(C::PitchClass, Octave);
+pub struct PitchClassOctave<C: PitchClassSpace>(pub C::PitchClass, pub Octave);
+impl<C: PitchClassSpace> PitchClassOctave<C> {
+    pub fn new(n: &str, o: Octave) -> Self {
+        let pc = C::from_str(n).unwrap();
+        PitchClassOctave(pc, o)
+    }
+}
+
 
 
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug)]
-struct IntegerPitchClass(usize);
+pub struct IntegerPitchClass(pub usize);
 impl PitchClass for IntegerPitchClass {}
 
 
 #[derive(Copy, Clone, Debug)]
-struct Semitone(f32);
+pub struct Semitone(pub f32);
 impl Pitch for Semitone {}
 
 impl ::std::ops::Add for Semitone {
