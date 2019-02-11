@@ -9,8 +9,8 @@ trait Interval<PC>
 struct ChromaticInterval(usize, Quality);
 impl Interval<ChromaticPitchClassSpace> for ChromaticInterval {
     fn new(a: &PitchClassOctave<ChromaticPitchClassSpace>, b: &PitchClassOctave<ChromaticPitchClassSpace>) -> Self {
-        let a = (a.1, (a.0).0);
-        let b = (b.1, (b.0).0);
+        let a = (a.1 as usize, (a.0).0);
+        let b = (b.1 as usize, (b.0).0);
         let (a, b) = (a.max(b), a.min(b));
         let d = (a.0 * 12 + a.1) - (b.0 * 12 + b.1);
         let o = d / 12;

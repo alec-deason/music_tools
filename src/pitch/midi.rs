@@ -30,7 +30,7 @@ impl PitchConverter for MIDIPitchSpace {
         let pc = (p.0).0;
         // Add five because MIDI octaves have 0 at octave -5 for some reason
         let o = p.1 + 5;
-        Semitone((o * 12 + pc) as f32)
+        Semitone((o as usize * 12 + pc) as f32)
     }
 }
 

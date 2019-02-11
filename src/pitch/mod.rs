@@ -1,3 +1,4 @@
+use std::fmt::Debug;
 use std::cmp::Ordering;
 
 use ordered_float::OrderedFloat;
@@ -27,7 +28,7 @@ pub trait PitchConverter
     fn to_pitch(p: &PitchClassOctave<Self::PitchClassSpace>) -> <<Self as PitchConverter>::PitchSpace as PitchSpace>::Pitch;
 }
 
-pub trait PitchClass: Eq + Ord + Copy + Clone {}
+pub trait PitchClass: Eq + Ord + Copy + Clone + Debug {}
 pub trait PitchClassSpace {
     type PitchClass: PitchClass;
 
@@ -38,12 +39,18 @@ pub trait PitchClassSpace {
     fn to_str(n: &Self::PitchClass) -> String;
 }
 
-type Octave = usize;
+type Octave = i32;
+#[derive(Eq)]
 pub struct PitchClassOctave<C: PitchClassSpace>(pub C::PitchClass, pub Octave);
 impl<C: PitchClassSpace> PitchClassOctave<C> {
     pub fn new(n: &str, o: Octave) -> Self {
         let pc = C::from_str(n).unwrap();
         PitchClassOctave(pc, o)
+    }
+}
+impl<C: PitchClassSpace> PartialEq for PitchClassOctave<C> {
+    fn eq(&self, other: &PitchClassOctave<C>) -> bool {
+        self.0 == other.0 && self.1 == other.1
     }
 }
 

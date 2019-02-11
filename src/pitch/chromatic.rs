@@ -1,5 +1,8 @@
-use super::{PitchClassSpace, IntegerPitchClass};
+use std::fmt;
 
+use super::{PitchClassSpace, IntegerPitchClass, PitchClassOctave};
+
+#[derive(Debug)]
 pub struct ChromaticPitchClassSpace;
 
 impl PitchClassSpace for ChromaticPitchClassSpace {
@@ -14,7 +17,11 @@ impl PitchClassSpace for ChromaticPitchClassSpace {
     }
 
     fn precursor(p: &Self::PitchClass) -> Self::PitchClass{
-        IntegerPitchClass(((p.0 as i32 - 1) % 12) as usize)
+        let mut n = p.0 as i32 -1;
+        while n < 0 {
+            n += 12;
+        }
+        IntegerPitchClass((n % 12) as usize)
     }
 
     fn from_str(n: &str) -> Option<Self::PitchClass> {
@@ -63,6 +70,13 @@ impl PitchClassSpace for ChromaticPitchClassSpace {
             12 => "C",
             _ => panic!(),
         }.to_string()
+    }
+}
+
+
+impl fmt::Debug for PitchClassOctave<ChromaticPitchClassSpace> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}{}", ChromaticPitchClassSpace::to_str(&self.0), self.1)
     }
 }
 
@@ -121,5 +135,18 @@ mod tests {
         assert_eq!(p, ChromaticPitchClassSpace::from_str("E").unwrap());
         let p = ChromaticPitchClassSpace::successor(&p);
         assert_eq!(p, ChromaticPitchClassSpace::from_str("F").unwrap());
+    }
+
+    #[test]
+    fn precursor() {
+        let p = ChromaticPitchClassSpace::from_str("C").unwrap();
+        let p = ChromaticPitchClassSpace::precursor(&p);
+        assert_eq!(p, ChromaticPitchClassSpace::from_str("B").unwrap());
+        let p = ChromaticPitchClassSpace::from_str("F").unwrap();
+        let p = ChromaticPitchClassSpace::precursor(&p);
+        assert_eq!(p, ChromaticPitchClassSpace::from_str("E").unwrap());
+        let p = ChromaticPitchClassSpace::from_str("A").unwrap();
+        let p = ChromaticPitchClassSpace::precursor(&p);
+        assert_eq!(p, ChromaticPitchClassSpace::from_str("G♯").unwrap());
     }
 }
