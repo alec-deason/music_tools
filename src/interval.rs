@@ -1,18 +1,16 @@
 use crate::pitch::{Semitone, PitchClassSpace, PitchClassOctave};
 use crate::pitch::chromatic::ChromaticPitchClassSpace;
 
-trait Interval<PC>
+pub trait Interval<PC>
     where PC: PitchClassSpace {
     fn new(a: &PitchClassOctave<PC>, b: &PitchClassOctave<PC>) -> Self;
 }
 
-struct ChromaticInterval(usize, Quality);
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct ChromaticInterval(pub usize, pub Quality);
 impl Interval<ChromaticPitchClassSpace> for ChromaticInterval {
     fn new(a: &PitchClassOctave<ChromaticPitchClassSpace>, b: &PitchClassOctave<ChromaticPitchClassSpace>) -> Self {
-        let a = (a.1 as usize, (a.0).0);
-        let b = (b.1 as usize, (b.0).0);
-        let (a, b) = (a.max(b), a.min(b));
-        let d = (a.0 * 12 + a.1) - (b.0 * 12 + b.1);
+        let d = ((a.1 * 12 + (a.0).0 as i32) - (b.1 * 12 + (b.0).0 as i32)).abs() as usize;
         let o = d / 12;
         let (n, q) = match d % 12 {
             0 =>  (1, Quality::Perfect),
@@ -35,7 +33,7 @@ impl Interval<ChromaticPitchClassSpace> for ChromaticInterval {
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
-enum Quality {
+pub enum Quality {
     Perfect,
     Major,
     Minor,

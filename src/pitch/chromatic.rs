@@ -149,4 +149,15 @@ mod tests {
         let p = ChromaticPitchClassSpace::precursor(&p);
         assert_eq!(p, ChromaticPitchClassSpace::from_str("G♯").unwrap());
     }
+
+    #[test]
+    fn pitch_class_octave_ordering() {
+        let a:PitchClassOctave<ChromaticPitchClassSpace> = PitchClassOctave(ChromaticPitchClassSpace::from_str("C").unwrap(), 0);
+        let b = PitchClassOctave(ChromaticPitchClassSpace::from_str("D").unwrap(), 0);
+        assert!(a < b);
+        let a:PitchClassOctave<ChromaticPitchClassSpace> = PitchClassOctave(ChromaticPitchClassSpace::from_str("C").unwrap(), 10);
+        let b = PitchClassOctave(ChromaticPitchClassSpace::from_str("D").unwrap(), 1);
+        assert!(a > b);
+        assert_eq!(a.min(b), b);
+    }
 }

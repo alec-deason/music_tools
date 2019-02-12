@@ -1,4 +1,4 @@
 extern crate ordered_float;
-mod pitch;
-mod interval;
-mod scale;
+pub mod pitch;
+pub mod interval;
+pub mod scale;

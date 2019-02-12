@@ -1,4 +1,6 @@
 use std::fmt::Debug;
+use std::collections::hash_map::DefaultHasher;
+use std::hash::{Hash, Hasher};
 use std::cmp::Ordering;
 
 use ordered_float::OrderedFloat;
@@ -28,7 +30,7 @@ pub trait PitchConverter
     fn to_pitch(p: &PitchClassOctave<Self::PitchClassSpace>) -> <<Self as PitchConverter>::PitchSpace as PitchSpace>::Pitch;
 }
 
-pub trait PitchClass: Eq + Ord + Copy + Clone + Debug {}
+pub trait PitchClass: Eq + Ord + Copy + Clone + Debug + Hash {}
 pub trait PitchClassSpace {
     type PitchClass: PitchClass;
 
@@ -40,7 +42,6 @@ pub trait PitchClassSpace {
 }
 
 type Octave = i32;
-#[derive(Eq)]
 pub struct PitchClassOctave<C: PitchClassSpace>(pub C::PitchClass, pub Octave);
 impl<C: PitchClassSpace> PitchClassOctave<C> {
     pub fn new(n: &str, o: Octave) -> Self {
@@ -53,10 +54,39 @@ impl<C: PitchClassSpace> PartialEq for PitchClassOctave<C> {
         self.0 == other.0 && self.1 == other.1
     }
 }
+impl <C: PitchClassSpace> Eq for PitchClassOctave<C> {}
+
+impl<C: PitchClassSpace> PartialOrd for PitchClassOctave<C> {
+    fn partial_cmp(&self, other: &PitchClassOctave<C>) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl<C: PitchClassSpace> Ord for PitchClassOctave<C> {
+    fn cmp(&self, other: &PitchClassOctave<C>) -> Ordering {
+        (self.1, self.0).cmp(&(other.1, other.0))
+    }
+}
+
+impl<C: PitchClassSpace> Hash for PitchClassOctave<C> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.0.hash(state);
+        self.1.hash(state);
+    }
+}
+
+impl<C: PitchClassSpace> Copy for PitchClassOctave<C> {}
+impl<C: PitchClassSpace> Clone for PitchClassOctave<C> {
+    fn clone(&self) -> PitchClassOctave<C> {
+        PitchClassOctave(self.0, self.1)
+    }
+}
 
 
 
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug)]
+
+
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug, Hash)]
 pub struct IntegerPitchClass(pub usize);
 impl PitchClass for IntegerPitchClass {}
 
