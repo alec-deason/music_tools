@@ -16,7 +16,7 @@ impl Interval<ChromaticPitchClassSpace> for ChromaticInterval {
         b: &PitchClassOctave<ChromaticPitchClassSpace>,
     ) -> Self {
         let d = ((a.1 * 12 + (a.0).0 as i32) - (b.1 * 12 + (b.0).0 as i32)).abs() as usize;
-        let o = d / 12;
+        let mut o = d / 12;
         let (n, q) = match d % 12 {
             0 => (1, Quality::Perfect),
             1 => (2, Quality::Minor),
@@ -30,10 +30,14 @@ impl Interval<ChromaticPitchClassSpace> for ChromaticInterval {
             9 => (6, Quality::Major),
             10 => (7, Quality::Minor),
             11 => (7, Quality::Major),
-            12 => (8, Quality::Perfect),
             _ => panic!(),
         };
-        Self(n + o * 8, q)
+        if o > 0 {
+            o = o * 8 - 1;
+        } else {
+            o = o * 8;
+        }
+        Self(n + o, q)
     }
 }
 
@@ -67,6 +71,7 @@ mod tests {
             ("E♭", 0, "C", 1, 6),
             ("C", 0, "B", 0, 7),
             ("D", 0, "C♯", 1, 7),
+            ("D", 0, "D", 1, 8),
         ] {
             let aa = P::new(a, *ao);
             let bb = P::new(b, *bo);
@@ -90,6 +95,7 @@ mod tests {
             ("E♭", 0, "C", 1, Quality::Major),
             ("C", 0, "B", 0, Quality::Major),
             ("D", 0, "C♯", 1, Quality::Major),
+            ("D", 0, "D", 1, Quality::Perfect),
         ] {
             let aa = P::new(a, *ao);
             let bb = P::new(b, *bo);
