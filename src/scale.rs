@@ -222,10 +222,8 @@ mod tests {
             for pattern in &[IntervalPattern::Major, IntervalPattern::Minor] {
                 let scale: Scale<PC> = Scale::new(*tonic, *pattern);
                 for i in 0..scale.len() * 2 {
-                    eprintln!("thing");
                     let a = scale.note_from_degree(i as i32);
                     let b = scale.note_from_degree(i as i32 + 1);
-                    eprintln!("{} {:?} {:?} {:?}", i, a, b, scale);
                     assert!(scale.is_step(&b, &a));
                 }
             }
