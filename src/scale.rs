@@ -64,10 +64,10 @@ impl<C: PitchClassSpace> Scale<C> {
                         d_octave += 1;
                     }
                 } else {
-                    pc = C::precursor(&pc);
                     if C::degree(&pc) == 0 {
                         d_octave -= 1;
                     }
+                    pc = C::precursor(&pc);
                 }
             }
         }
@@ -148,7 +148,7 @@ mod tests {
             (-2, PitchClassOctave(PC::from_str("F").unwrap(), 0)),
             (-3, PitchClassOctave(PC::from_str("E").unwrap(), 0)),
             (-4, PitchClassOctave(PC::from_str("D").unwrap(), 0)),
-            (-5, PitchClassOctave(PC::from_str("C").unwrap(), -1)),
+            (-5, PitchClassOctave(PC::from_str("C").unwrap(), 0)),
             (-6, PitchClassOctave(PC::from_str("B").unwrap(), -1)),
             (-7, PitchClassOctave(PC::from_str("A").unwrap(), -1)),
             (-8, PitchClassOctave(PC::from_str("G").unwrap(), -1)),
