@@ -1,5 +1,5 @@
-use super::{PitchSpace, Semitone, PitchConverter, PitchClassOctave};
 use super::chromatic::ChromaticPitchClassSpace;
+use super::{PitchClassOctave, PitchConverter, PitchSpace, Semitone};
 
 pub struct MIDIPitchSpace;
 
@@ -34,12 +34,11 @@ impl PitchConverter for MIDIPitchSpace {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use assert_approx_eq::assert_approx_eq;
     use crate::pitch::PitchClassSpace;
+    use assert_approx_eq::assert_approx_eq;
 
     #[test]
     fn from_frequency() {
@@ -49,9 +48,8 @@ mod tests {
 
     #[test]
     fn distance() {
-        assert_approx_eq!(MIDIPitchSpace::distance(
-            &Semitone(60.0),
-            &Semitone(69.0)),
+        assert_approx_eq!(
+            MIDIPitchSpace::distance(&Semitone(60.0), &Semitone(69.0)),
             9.0,
             0.001
         );

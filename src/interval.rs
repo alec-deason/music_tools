@@ -1,28 +1,33 @@
-use crate::pitch::{Semitone, PitchClassSpace, PitchClassOctave};
 use crate::pitch::chromatic::ChromaticPitchClassSpace;
+use crate::pitch::{PitchClassOctave, PitchClassSpace, Semitone};
 
 pub trait Interval<PC>
-    where PC: PitchClassSpace {
+where
+    PC: PitchClassSpace,
+{
     fn new(a: &PitchClassOctave<PC>, b: &PitchClassOctave<PC>) -> Self;
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct ChromaticInterval(pub usize, pub Quality);
 impl Interval<ChromaticPitchClassSpace> for ChromaticInterval {
-    fn new(a: &PitchClassOctave<ChromaticPitchClassSpace>, b: &PitchClassOctave<ChromaticPitchClassSpace>) -> Self {
+    fn new(
+        a: &PitchClassOctave<ChromaticPitchClassSpace>,
+        b: &PitchClassOctave<ChromaticPitchClassSpace>,
+    ) -> Self {
         let d = ((a.1 * 12 + (a.0).0 as i32) - (b.1 * 12 + (b.0).0 as i32)).abs() as usize;
         let o = d / 12;
         let (n, q) = match d % 12 {
-            0 =>  (1, Quality::Perfect),
-            1 =>  (2, Quality::Minor),
-            2 =>  (2, Quality::Major),
-            3 =>  (3, Quality::Minor),
-            4 =>  (3, Quality::Major),
-            5 =>  (4, Quality::Perfect),
-            6 =>  (5, Quality::Diminished),
-            7 =>  (5, Quality::Perfect),
-            8 =>  (6, Quality::Minor),
-            9 =>  (6, Quality::Major),
+            0 => (1, Quality::Perfect),
+            1 => (2, Quality::Minor),
+            2 => (2, Quality::Major),
+            3 => (3, Quality::Minor),
+            4 => (3, Quality::Major),
+            5 => (4, Quality::Perfect),
+            6 => (5, Quality::Diminished),
+            7 => (5, Quality::Perfect),
+            8 => (6, Quality::Minor),
+            9 => (6, Quality::Major),
             10 => (7, Quality::Minor),
             11 => (7, Quality::Major),
             12 => (8, Quality::Perfect),
@@ -44,8 +49,8 @@ pub enum Quality {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::pitch::PitchConverter;
     use crate::pitch::PitchClassOctave as P;
+    use crate::pitch::PitchConverter;
 
     #[test]
     fn test_interval_number() {

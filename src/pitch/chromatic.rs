@@ -1,6 +1,6 @@
 use std::fmt;
 
-use super::{PitchClassSpace, IntegerPitchClass, PitchClassOctave};
+use super::{IntegerPitchClass, PitchClassOctave, PitchClassSpace};
 
 #[derive(Debug)]
 pub struct ChromaticPitchClassSpace;
@@ -16,16 +16,24 @@ impl PitchClassSpace for ChromaticPitchClassSpace {
         IntegerPitchClass(((p.0 as i32 + 1) % 12) as usize)
     }
 
-    fn precursor(p: &Self::PitchClass) -> Self::PitchClass{
-        let mut n = p.0 as i32 -1;
+    fn precursor(p: &Self::PitchClass) -> Self::PitchClass {
+        let mut n = p.0 as i32 - 1;
         while n < 0 {
             n += 12;
         }
         IntegerPitchClass((n % 12) as usize)
     }
 
+    fn degree(p: &Self::PitchClass) -> usize {
+        p.0
+    }
+
     fn from_str(n: &str) -> Option<Self::PitchClass> {
-        let n = if n.chars().count() == 1 { format!("{}♮", n) } else { n.to_string() };
+        let n = if n.chars().count() == 1 {
+            format!("{}♮", n)
+        } else {
+            n.to_string()
+        };
         match &n[..] {
             "C♭" => Some(IntegerPitchClass(11)),
             "C♮" => Some(IntegerPitchClass(0)),
@@ -69,10 +77,10 @@ impl PitchClassSpace for ChromaticPitchClassSpace {
             11 => "B",
             12 => "C",
             _ => panic!(),
-        }.to_string()
+        }
+        .to_string()
     }
 }
-
 
 impl fmt::Debug for PitchClassOctave<ChromaticPitchClassSpace> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -86,20 +94,23 @@ mod tests {
 
     #[test]
     fn classes() {
-        assert_eq!(ChromaticPitchClassSpace::classes(), vec![
-            ChromaticPitchClassSpace::from_str("C").unwrap(),
-            ChromaticPitchClassSpace::from_str("C♯").unwrap(),
-            ChromaticPitchClassSpace::from_str("D").unwrap(),
-            ChromaticPitchClassSpace::from_str("D♯").unwrap(),
-            ChromaticPitchClassSpace::from_str("E").unwrap(),
-            ChromaticPitchClassSpace::from_str("F").unwrap(),
-            ChromaticPitchClassSpace::from_str("F♯").unwrap(),
-            ChromaticPitchClassSpace::from_str("G").unwrap(),
-            ChromaticPitchClassSpace::from_str("G♯").unwrap(),
-            ChromaticPitchClassSpace::from_str("A").unwrap(),
-            ChromaticPitchClassSpace::from_str("A♯").unwrap(),
-            ChromaticPitchClassSpace::from_str("B").unwrap(),
-        ]);
+        assert_eq!(
+            ChromaticPitchClassSpace::classes(),
+            vec![
+                ChromaticPitchClassSpace::from_str("C").unwrap(),
+                ChromaticPitchClassSpace::from_str("C♯").unwrap(),
+                ChromaticPitchClassSpace::from_str("D").unwrap(),
+                ChromaticPitchClassSpace::from_str("D♯").unwrap(),
+                ChromaticPitchClassSpace::from_str("E").unwrap(),
+                ChromaticPitchClassSpace::from_str("F").unwrap(),
+                ChromaticPitchClassSpace::from_str("F♯").unwrap(),
+                ChromaticPitchClassSpace::from_str("G").unwrap(),
+                ChromaticPitchClassSpace::from_str("G♯").unwrap(),
+                ChromaticPitchClassSpace::from_str("A").unwrap(),
+                ChromaticPitchClassSpace::from_str("A♯").unwrap(),
+                ChromaticPitchClassSpace::from_str("B").unwrap(),
+            ]
+        );
     }
 
     #[test]
@@ -152,10 +163,12 @@ mod tests {
 
     #[test]
     fn pitch_class_octave_ordering() {
-        let a:PitchClassOctave<ChromaticPitchClassSpace> = PitchClassOctave(ChromaticPitchClassSpace::from_str("C").unwrap(), 0);
+        let a: PitchClassOctave<ChromaticPitchClassSpace> =
+            PitchClassOctave(ChromaticPitchClassSpace::from_str("C").unwrap(), 0);
         let b = PitchClassOctave(ChromaticPitchClassSpace::from_str("D").unwrap(), 0);
         assert!(a < b);
-        let a:PitchClassOctave<ChromaticPitchClassSpace> = PitchClassOctave(ChromaticPitchClassSpace::from_str("C").unwrap(), 10);
+        let a: PitchClassOctave<ChromaticPitchClassSpace> =
+            PitchClassOctave(ChromaticPitchClassSpace::from_str("C").unwrap(), 10);
         let b = PitchClassOctave(ChromaticPitchClassSpace::from_str("D").unwrap(), 1);
         assert!(a > b);
         assert_eq!(a.min(b), b);

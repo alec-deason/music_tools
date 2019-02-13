@@ -1,12 +1,12 @@
-use std::fmt::Debug;
-use std::collections::hash_map::DefaultHasher;
-use std::hash::{Hash, Hasher};
 use std::cmp::Ordering;
+use std::collections::hash_map::DefaultHasher;
+use std::fmt::Debug;
+use std::hash::{Hash, Hasher};
 
 use ordered_float::OrderedFloat;
 
-pub mod midi;
 pub mod chromatic;
+pub mod midi;
 
 trait Pitch: Eq + Ord {}
 
@@ -21,13 +21,16 @@ pub trait PitchSpace {
 }
 
 pub trait PitchConverter
-   where
-      Self::PitchSpace: PitchSpace,
-      Self::PitchClassSpace: PitchClassSpace {
+where
+    Self::PitchSpace: PitchSpace,
+    Self::PitchClassSpace: PitchClassSpace,
+{
     type PitchSpace;
     type PitchClassSpace;
 
-    fn to_pitch(p: &PitchClassOctave<Self::PitchClassSpace>) -> <<Self as PitchConverter>::PitchSpace as PitchSpace>::Pitch;
+    fn to_pitch(
+        p: &PitchClassOctave<Self::PitchClassSpace>,
+    ) -> <<Self as PitchConverter>::PitchSpace as PitchSpace>::Pitch;
 }
 
 pub trait PitchClass: Eq + Ord + Copy + Clone + Debug + Hash {}
@@ -37,6 +40,7 @@ pub trait PitchClassSpace {
     fn classes() -> Vec<Self::PitchClass>;
     fn successor(p: &Self::PitchClass) -> Self::PitchClass;
     fn precursor(p: &Self::PitchClass) -> Self::PitchClass;
+    fn degree(p: &Self::PitchClass) -> usize;
     fn from_str(n: &str) -> Option<Self::PitchClass>;
     fn to_str(n: &Self::PitchClass) -> String;
 }
@@ -54,7 +58,7 @@ impl<C: PitchClassSpace> PartialEq for PitchClassOctave<C> {
         self.0 == other.0 && self.1 == other.1
     }
 }
-impl <C: PitchClassSpace> Eq for PitchClassOctave<C> {}
+impl<C: PitchClassSpace> Eq for PitchClassOctave<C> {}
 
 impl<C: PitchClassSpace> PartialOrd for PitchClassOctave<C> {
     fn partial_cmp(&self, other: &PitchClassOctave<C>) -> Option<Ordering> {
@@ -82,14 +86,9 @@ impl<C: PitchClassSpace> Clone for PitchClassOctave<C> {
     }
 }
 
-
-
-
-
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug, Hash)]
 pub struct IntegerPitchClass(pub usize);
 impl PitchClass for IntegerPitchClass {}
-
 
 #[derive(Copy, Clone, Debug)]
 pub struct Semitone(pub f32);
