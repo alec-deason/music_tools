@@ -4,16 +4,17 @@ extern crate portaudio;
 extern crate rand;
 extern crate num;
 
-use std::collections::HashMap;
+use std::thread::sleep;
+use std::time::Duration;
 use rand::prelude::*;
 use portaudio as pa;
-use music_tools::{Pitch, Scale, Chord};
+use music_tools::{Pitch, Chord};
 use std::f64::consts::{PI};
 
 type AudioSample = f32;
 
 const CHANNELS: i32 = 1;
-const FRAMES: u32 = 16;
+const FRAMES: u32 = 8;
 const SAMPLE_HZ: f64 = 48_000.0;
 
 trait Voice {
@@ -119,7 +120,6 @@ impl Instrument {
         self.clock += 1.0 / SAMPLE_HZ;
         while self.sequence.len() > 0 && self.clock >= self.sequence[0].onset {
             let note = self.sequence.remove(0);
-            eprintln!("Playing: {:?}", note);
             self.voices[0].0.play_chord(&note.chord);
             self.voices[0].1 = self.clock + note.duration;
             self.voices.rotate_left(1);
@@ -143,6 +143,15 @@ impl Instrument {
             }
             self.sequence.insert(position, note.clone());
         }
+    }
+
+    fn exhausted(&self) -> bool {
+        self.sequence.len() == 0
+    }
+
+    fn reset(&mut self) {
+        //self.clock = 0.0;
+        self.sequence.clear();
     }
 }
 
@@ -197,14 +206,13 @@ fn rhythm(a: u32, b: u32, len: u32) -> Vec<u32> {
             result.push(since_last);
             since_last = 0;
             c_m = a_m * b_m;
-        } else {
-            since_last += 1;
         }
+        since_last += 1;
     }
     result
 }
 
-fn pitch(af: f64, bf: f64, cf: f64, pitch_series: &[Pitch], rhythm: &[u32]) -> Vec<Pitch> {
+fn pitch(af: f64, bf: f64, cf: f64, pitch_series: &[Pitch], rhythm: &[f64]) -> Vec<Pitch> {
     let mut result = Vec::with_capacity(rhythm.len());
     let mut clock = 0.0;
     for duration in rhythm.iter().cloned() {
@@ -230,92 +238,76 @@ fn pitch(af: f64, bf: f64, cf: f64, pitch_series: &[Pitch], rhythm: &[u32]) -> V
     result
 }
 
-fn song(tonic: &Pitch) -> Vec<Note> {
+fn song(tonic: &Pitch, target_length: u32) -> Vec<Note> {
     let mut rng = thread_rng();
 
     let semi = 16.0/15.0 - 1.0;
-    let whole = semi * 2.0;
-    let scale = Scale::new(&[whole, whole, semi, whole, whole, whole, semi]);
-
-    let mut changes:HashMap<&str, usize> = HashMap::new();
-    changes.insert("I", 0);
-    changes.insert("IV", 3);
-    changes.insert("V", 4);
-
-    let twelve_bar = vec!["I", "I", "I", "I", "IV", "IV", "I", "I", "V", "IV", "I", "V"];
-    let mut other:Vec<&str> = (0..60).map(|_| *["I", "IV", "V"].choose(&mut rng).unwrap()).collect();
-
-    // Make sure it ends on a strong cadence
-    if other[other.len()-1] != "V" {
-        other.push("V");
+    let mut intervals = vec![0, 1, 1, 1, 1];
+    for _ in 0..9 {
+        let idx = rng.gen_range(0, intervals.len());
+        intervals[idx] += 1;
     }
-    other.push("I");
-
-    let melody:Vec<Pitch> = other.iter().map(|c| scale.pitch(tonic, changes[c] as i32)).collect();
-
-    let major = vec![1.0, (1.0 + semi as f64).powf(4.0), (1.0 + semi as f64).powf(6.0), (  1.0 + semi as f64).powf(9.0), (1.0 + semi as f64).powf(9.0), (1.0 + semi as f64).powf(6.0), (1.0+semi as f64).powf(4.0), 1.0];
-
-    let mut notes = Vec::new();
-    let beat = 60.0 / 70.0;
-    let mut clock = 0.0;
-    // Baseline
-    for pitch in &melody {
-        for interval in &major {
-            notes.push(Note {
-                instrument: 1,
-                chord: Chord(vec![pitch.apply_interval(*interval*0.5)]),
-                onset: clock,
-                duration: (beat/2.0)*0.75,
-                amplitude: 0.8,
-            });
-            clock += beat/4.0;
-        }
+    let mut pitch_series = vec![intervals[0]];
+    for interval in &intervals[1..] {
+        let last = pitch_series[pitch_series.len()-1];
+        pitch_series.push(last + interval)
     }
+    let pitch_series:Vec<Pitch> = pitch_series.iter().map(|p| tonic.apply_interval((1.0f64+semi).powf(*p as f64))).collect();
+    let beat = 60.0 / 90.0;
 
-    let mut clock = 0.0;
-    // Melody
-    for pitch in &melody {
-        for _ in 0..8 {
-            for (i, interval) in major[1..4].iter().enumerate() {
-                notes.push(Note {
-                    instrument: 2+i,
-                    chord: Chord(vec![pitch.apply_interval(*interval)]),
-                    onset: clock,
-                    duration: (beat/4.0),
-                    amplitude: 1.0,
-                });
-            }
-            clock += beat/4.0;
-            notes.push(Note {
-                instrument: 5,
-                chord: Chord(vec![pitch.apply_interval(1.0)]),
-                onset: clock,
-                duration: (beat/4.0),
-                amplitude: 1.0,
-            });
-            clock += beat/4.0;
-        }
-    }
+    let rhythm_pattern:Vec<f64> = rhythm(rng.gen_range(3, 10), rng.gen_range(2, 8), target_length).iter().map(|r| *r as f64 * beat * 0.25).collect();
+    let a = rng.gen_range(7.0, 13.0);
+    let b = rng.gen_range(3.0, 7.0);
+    let c = rng.gen_range(0.0, 1.0);
+    let melody_a = pitch(a, b, c, &pitch_series, &rhythm_pattern);
 
-    while clock >= 0.0 {
-        // Kick
-        notes.push(Note {
-            instrument: 0,
-            chord: Chord(vec![]),
-            onset: clock,
+    let mut notes:Vec<Note> = melody_a.iter().zip(&rhythm_pattern).scan(0.0, |clock, (m, r)| {
+        let note = Note {
+            instrument: 1,
+            chord: Chord(vec![*m]),
+            onset: *clock,
             duration: 0.1,
-            amplitude: 1.5,
-        });
-        clock -= beat;
-    }
-    notes.sort_by_key(|n| (n.onset * 100000.0) as i32);
+            amplitude: 1.0,
+        };
+        *clock += *r as f64 * beat;
+        Some(note)
+    }).collect();
+
+    let rhythm_pattern:Vec<f64> = rhythm(rng.gen_range(3, 10), rng.gen_range(2, 8), target_length).iter().map(|r| *r as f64 * beat * 0.25).collect();
+    let a = rng.gen_range(7.0, 13.0);
+    let b = rng.gen_range(3.0, 7.0);
+    let c = rng.gen_range(0.0, 1.0);
+    let melody_b = pitch(a, b, c, &pitch_series, &rhythm_pattern);
+    notes.extend(melody_b.iter().zip(&rhythm_pattern).scan(0.0, |clock, (m, r)| {
+          let note = Note {
+              instrument: 2,
+              chord: Chord(vec![m.apply_interval(0.5)]),
+              onset: *clock,
+              duration: 0.1,
+              amplitude: 1.0,
+          };
+          *clock += *r as f64 * beat;
+          Some(note)
+      }));
+
+    let rhythm_pattern:Vec<f64> = rhythm(rng.gen_range(3, 10), rng.gen_range(2, 8), target_length).iter().map(|r| *r as f64 * beat * 0.25).collect();
+    notes.extend(rhythm_pattern.iter().scan(0.0, |clock, r| {
+          let note = Note {
+              instrument: 0,
+              chord: Chord(vec![]),
+              onset: *clock,
+              duration: 0.1,
+              amplitude: 1.0,
+          };
+          *clock += *r as f64 * beat;
+          Some(note)
+    }));
+
     notes
 }
 
 fn main() -> Result<(), pa::Error> {
     let base_pitch = Pitch(220.0);
-    let notes = song(&base_pitch);
-    eprintln!("Song: {:?}", notes);
 
     let mut instruments = vec![
         Instrument::new(1, &|| Box::new(Kick { amp: 1.0, since_event: 1000.0, since_onset: 10000.0, sounding: false })),
@@ -326,28 +318,44 @@ fn main() -> Result<(), pa::Error> {
         Instrument::new(3, &|| Box::new(AdditiveBell { chord: Chord(vec![base_pitch, base_pitch.apply_interval((16.0/15.0 - 1.0)*4.0),   base_pitch.apply_interval((16.0/15.0 -1.0)*7.0)]), amp: 1.0, since_event: 1000.0, since_onset: 10000.0, sounding: false }) ),
     ];
 
-    for note in notes {
-        let instrument = &mut instruments[note.instrument];
-        instrument.schedule_note(&note);
-    }
-    eprintln!("{:?}", instruments[0].sequence);
 
-    let callback = move |pa::OutputStreamCallbackArgs { buffer, frames, .. }| {
-        let mut idx = 0;
-        for _ in 0..frames {
-            buffer[idx] = instruments.iter_mut().map(|instrument| instrument.sample() as f32).sum::<f32>() * 0.05;
-            idx += 1;
-        }
-        pa::Continue
-    };
     let pa = pa::PortAudio::new()?;
     let settings = pa.default_output_stream_settings::<AudioSample>(CHANNELS, SAMPLE_HZ, FRAMES)?;
-    let mut stream = pa.open_non_blocking_stream(settings, callback)?;
+    let mut stream = pa.open_blocking_stream(settings)?;
     stream.start()?;
 
-    while let Ok(true) = stream.is_active() {
-        std::thread::sleep(std::time::Duration::from_millis(16));
+    loop {
+        let frames = match stream.write_available() {
+            Ok(available) => match available {
+                pa::StreamAvailable::Frames(frames) => frames,
+                pa::StreamAvailable::InputOverflowed => {
+                    eprintln!("underflow");
+                    0
+                },
+                pa::StreamAvailable::OutputUnderflowed => {
+                    eprintln!("overflow");
+                    0
+                },
+            },
+            Err(_) => panic!(),
+        };
+        if frames > 0 {
+            stream.write(frames as u32, |output| {
+                for i in 0..frames as usize {
+                    let sample = instruments.iter_mut().map(|instrument| instrument.sample() as f32).sum::<f32>() * 0.1;
+                    output[i] = sample;
+                }
+            })?;
+            if instruments.iter().all(|i| i.exhausted()) {
+                instruments.iter_mut().for_each(|i| i.reset());
+                let notes = song(&base_pitch, 1000);
+                for note in notes {
+                    let instrument = &mut instruments[note.instrument];
+                    instrument.schedule_note(&note);
+                }
+            }
+        } else {
+            sleep(Duration::from_millis(1000/SAMPLE_HZ as u64));
+        }
     }
-
-    Ok(())
 }
