@@ -3,9 +3,10 @@ extern crate music_tools;
 extern crate portaudio;
 extern crate rand;
 extern crate num;
+extern crate crossbeam;
 
-use std::thread::sleep;
-use std::time::Duration;
+use std::sync::Arc;
+use crossbeam::queue::{ArrayQueue, PushError};
 use rand::prelude::*;
 use portaudio as pa;
 use music_tools::{Pitch, Chord};
@@ -14,7 +15,7 @@ use std::f64::consts::{PI};
 type AudioSample = f32;
 
 const CHANNELS: i32 = 1;
-const FRAMES: u32 = 8;
+const FRAMES: u32 = 32;
 const SAMPLE_HZ: f64 = 48_000.0;
 
 trait Voice {
@@ -195,7 +196,7 @@ fn rhythm(a: u32, b: u32, len: u32) -> Vec<u32> {
     let mut b_m = 1;
     let mut c_m = 1;
     let mut since_last = 0;
-    for i in 0..len {
+    for i in 0..(len*4) {
         if i % a == 0 {
             a_m *= -1;
         }
@@ -238,8 +239,31 @@ fn pitch(af: f64, bf: f64, cf: f64, pitch_series: &[Pitch], rhythm: &[f64]) -> V
     result
 }
 
+fn motif(pitch_series: &[Pitch], beat: f64, target_length: u32) -> Vec<(Pitch, f64)> {
+    let mut rng = thread_rng();
+
+    let a = rng.gen_range(3, 10);
+    let mut b = rng.gen_range(2, 8);
+    while b == a {
+        b = rng.gen_range(2, 8);
+    }
+    let mut rhythm_pattern:Vec<f64> = rhythm(a, b, target_length).iter().map(|r| *r as f64 * beat * 0.25).collect();
+
+    let a = rng.gen_range(7.0, 13.0);
+    let b = rng.gen_range(3.0, 7.0);
+    let c = rng.gen_range(0.0, 1.0);
+    let melody = pitch(a, b, c, &pitch_series, &rhythm_pattern);
+    let mut result = Vec::with_capacity(melody.len());
+    for i in 0..melody.len() {
+        result.push((melody[i], rhythm_pattern[i]));
+    }
+    result
+}
+
+
 fn song(tonic: &Pitch, target_length: u32) -> Vec<Note> {
     let mut rng = thread_rng();
+
 
     let semi = 16.0/15.0 - 1.0;
     let mut intervals = vec![0, 1, 1, 1, 1];
@@ -255,53 +279,61 @@ fn song(tonic: &Pitch, target_length: u32) -> Vec<Note> {
     let pitch_series:Vec<Pitch> = pitch_series.iter().map(|p| tonic.apply_interval((1.0f64+semi).powf(*p as f64))).collect();
     let beat = 60.0 / 90.0;
 
-    let rhythm_pattern:Vec<f64> = rhythm(rng.gen_range(3, 10), rng.gen_range(2, 8), target_length).iter().map(|r| *r as f64 * beat * 0.25).collect();
-    let a = rng.gen_range(7.0, 13.0);
-    let b = rng.gen_range(3.0, 7.0);
-    let c = rng.gen_range(0.0, 1.0);
-    let melody_a = pitch(a, b, c, &pitch_series, &rhythm_pattern);
+    let motifs:Vec<Vec<(Pitch, f64)>> = (0..10).map(|_| motif(&pitch_series, beat, rng.gen_range(6, 12))).collect();
 
-    let mut notes:Vec<Note> = melody_a.iter().zip(&rhythm_pattern).scan(0.0, |clock, (m, r)| {
-        let note = Note {
-            instrument: 1,
-            chord: Chord(vec![*m]),
-            onset: *clock,
-            duration: 0.1,
-            amplitude: 1.0,
-        };
-        *clock += *r as f64 * beat;
-        Some(note)
-    }).collect();
-
-    let rhythm_pattern:Vec<f64> = rhythm(rng.gen_range(3, 10), rng.gen_range(2, 8), target_length).iter().map(|r| *r as f64 * beat * 0.25).collect();
-    let a = rng.gen_range(7.0, 13.0);
-    let b = rng.gen_range(3.0, 7.0);
-    let c = rng.gen_range(0.0, 1.0);
-    let melody_b = pitch(a, b, c, &pitch_series, &rhythm_pattern);
-    notes.extend(melody_b.iter().zip(&rhythm_pattern).scan(0.0, |clock, (m, r)| {
-          let note = Note {
+    let mut notes = Vec::new();
+    let mut clock = 0.0;
+    let prev = (motifs[0][0].0, (motifs[0][0].1 * 1000.0) as u32);
+    while clock < target_length as f64 {
+        let motif = motifs.choose(&mut rng).unwrap();
+        for (m, r) in motif {
+            let note = Note {
               instrument: 2,
+              chord: Chord(vec![*m]),
+              onset: clock,
+              duration: 0.1,
+              amplitude: 1.0,
+            };
+            notes.push(note);
+            clock += *r as f64;
+        }
+    }
+    let mut clock = 0.0;
+    let prev = (motifs[0][0].0, (motifs[0][0].1 * 1000.0) as u32);
+    while clock < target_length as f64 {
+        let motif = motifs.choose(&mut rng).unwrap();
+        for (m, r) in motif {
+            let note = Note {
+              instrument: 3,
               chord: Chord(vec![m.apply_interval(0.5)]),
-              onset: *clock,
+              onset: clock,
               duration: 0.1,
               amplitude: 1.0,
-          };
-          *clock += *r as f64 * beat;
-          Some(note)
-      }));
-
-    let rhythm_pattern:Vec<f64> = rhythm(rng.gen_range(3, 10), rng.gen_range(2, 8), target_length).iter().map(|r| *r as f64 * beat * 0.25).collect();
-    notes.extend(rhythm_pattern.iter().scan(0.0, |clock, r| {
-          let note = Note {
-              instrument: 0,
+            };
+            notes.push(note);
+            clock += *r as f64;
+        }
+    }
+    for drum_idx in vec![0, 1] {
+        let mut clock = 0.0;
+        let a = rng.gen_range(3, 10);
+        let mut b = rng.gen_range(2, 8);
+        while b == a {
+            b = rng.gen_range(2, 8);
+        }
+        let rhythm_pattern:Vec<f64> = rhythm(a, b, target_length).iter().map(|r| *r as f64 * beat * 0.25).collect();
+        for r in rhythm_pattern {
+            let note = Note {
+              instrument: drum_idx,
               chord: Chord(vec![]),
-              onset: *clock,
-              duration: 0.1,
-              amplitude: 1.0,
-          };
-          *clock += *r as f64 * beat;
-          Some(note)
-    }));
+              onset: clock,
+              duration: 0.01,
+              amplitude: 1.5,
+            };
+            notes.push(note);
+            clock += r as f64;
+        }
+    }
 
     notes
 }
@@ -311,51 +343,62 @@ fn main() -> Result<(), pa::Error> {
 
     let mut instruments = vec![
         Instrument::new(1, &|| Box::new(Kick { amp: 1.0, since_event: 1000.0, since_onset: 10000.0, sounding: false })),
-        Instrument::new(3, &|| Box::new(AdditiveBell { chord: Chord(vec![base_pitch, base_pitch.apply_interval((16.0/15.0 - 1.0)*4.0),   base_pitch.apply_interval((16.0/15.0 -1.0)*7.0)]), amp: 1.0, since_event: 1000.0, since_onset: 10000.0, sounding: false }) ),
-        Instrument::new(3, &|| Box::new(AdditiveBell { chord: Chord(vec![base_pitch, base_pitch.apply_interval((16.0/15.0 - 1.0)*4.0),   base_pitch.apply_interval((16.0/15.0 -1.0)*7.0)]), amp: 1.0, since_event: 1000.0, since_onset: 10000.0, sounding: false }) ),
-        Instrument::new(3, &|| Box::new(AdditiveBell { chord: Chord(vec![base_pitch, base_pitch.apply_interval((16.0/15.0 - 1.0)*4.0),   base_pitch.apply_interval((16.0/15.0 -1.0)*7.0)]), amp: 1.0, since_event: 1000.0, since_onset: 10000.0, sounding: false }) ),
-        Instrument::new(3, &|| Box::new(AdditiveBell { chord: Chord(vec![base_pitch, base_pitch.apply_interval((16.0/15.0 - 1.0)*4.0),   base_pitch.apply_interval((16.0/15.0 -1.0)*7.0)]), amp: 1.0, since_event: 1000.0, since_onset: 10000.0, sounding: false }) ),
-        Instrument::new(3, &|| Box::new(AdditiveBell { chord: Chord(vec![base_pitch, base_pitch.apply_interval((16.0/15.0 - 1.0)*4.0),   base_pitch.apply_interval((16.0/15.0 -1.0)*7.0)]), amp: 1.0, since_event: 1000.0, since_onset: 10000.0, sounding: false }) ),
+        Instrument::new(1, &|| Box::new(Kick { amp: 1.0, since_event: 1000.0, since_onset: 10000.0, sounding: false })),
+        Instrument::new(2, &|| Box::new(AdditiveBell { chord: Chord(vec![base_pitch, base_pitch.apply_interval((16.0/15.0 - 1.0)*4.0),   base_pitch.apply_interval((16.0/15.0 -1.0)*7.0)]), amp: 1.0, since_event: 1000.0, since_onset: 10000.0, sounding: false }) ),
+        Instrument::new(2, &|| Box::new(AdditiveBell { chord: Chord(vec![base_pitch, base_pitch.apply_interval((16.0/15.0 - 1.0)*4.0),   base_pitch.apply_interval((16.0/15.0 -1.0)*7.0)]), amp: 1.0, since_event: 1000.0, since_onset: 10000.0, sounding: false }) ),
     ];
 
+    let sample_buffer = Arc::new(ArrayQueue::new(SAMPLE_HZ as usize * 3));
+    
+    let callback;
+    {
+        let sample_buffer = sample_buffer.clone();
+        callback = move |pa::OutputStreamCallbackArgs { buffer, frames, .. }| {
+            for i in 0..frames as usize {
+                match sample_buffer.pop() {
+                    Ok(sample) => buffer[i] = sample,
+                    Err(_) => buffer[i] = 0.0,
+                }
+            }
+
+            pa::Continue
+        };
+    }
+    let notes = song(&Pitch(440.), 1000);
+    for note in notes {
+        let instrument = &mut instruments[note.instrument];
+        instrument.schedule_note(&note);
+    }
+    {
+        for _ in 0..SAMPLE_HZ as usize * 3 {
+            let sample = instruments.iter_mut().map(|instrument| instrument.sample() as f32).sum::<f32>() * 0.1;
+            sample_buffer.push(sample);
+        }
+    }
 
     let pa = pa::PortAudio::new()?;
     let settings = pa.default_output_stream_settings::<AudioSample>(CHANNELS, SAMPLE_HZ, FRAMES)?;
-    let mut stream = pa.open_blocking_stream(settings)?;
+    let mut stream = pa.open_non_blocking_stream(settings, callback)?;
+
     stream.start()?;
 
     loop {
-        let frames = match stream.write_available() {
-            Ok(available) => match available {
-                pa::StreamAvailable::Frames(frames) => frames,
-                pa::StreamAvailable::InputOverflowed => {
-                    eprintln!("underflow");
-                    0
-                },
-                pa::StreamAvailable::OutputUnderflowed => {
-                    eprintln!("overflow");
-                    0
-                },
-            },
-            Err(_) => panic!(),
-        };
-        if frames > 0 {
-            stream.write(frames as u32, |output| {
-                for i in 0..frames as usize {
-                    let sample = instruments.iter_mut().map(|instrument| instrument.sample() as f32).sum::<f32>() * 0.1;
-                    output[i] = sample;
-                }
-            })?;
+        let len = sample_buffer.len();
+        if len < SAMPLE_HZ as usize {
             if instruments.iter().all(|i| i.exhausted()) {
                 instruments.iter_mut().for_each(|i| i.reset());
-                let notes = song(&base_pitch, 1000);
+                let notes = song(&Pitch(440.), 1000);
                 for note in notes {
                     let instrument = &mut instruments[note.instrument];
                     instrument.schedule_note(&note);
                 }
             }
+            while !sample_buffer.is_full() {
+                let sample = instruments.iter_mut().map(|instrument| instrument.sample() as f32).sum::<f32>() * 0.1;
+                sample_buffer.push(sample).unwrap();
+            }
         } else {
-            sleep(Duration::from_millis(1000/SAMPLE_HZ as u64));
+            pa.sleep(500);
         }
     }
 }

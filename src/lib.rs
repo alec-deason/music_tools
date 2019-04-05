@@ -1,9 +1,21 @@
 extern crate rand;
 
+use std::hash::{Hash, Hasher};
 use rand::prelude::*;
 
 #[derive(Copy, Clone, Debug)]
 pub struct Pitch(pub f32);
+impl Hash for Pitch {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        ((self.0 * 1000.0) as i32).hash(state);
+    }
+}
+impl PartialEq for Pitch {
+    fn eq(&self, other: &Pitch) -> bool {
+        self.0 == other.0
+    }
+}
+impl Eq for Pitch {}
 
 impl Pitch {
     pub fn apply_interval(&self, interval: f64) -> Pitch {

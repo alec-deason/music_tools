@@ -8,6 +8,7 @@ edition = "2018"
 ordered-float = "1.0.1"
 regex = "1"
 rand = "*"
+crossbeam = "0.7"
 
 [dev-dependencies]
 assert_approx_eq = "1.1.0"
