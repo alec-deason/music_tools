@@ -5,14 +5,8 @@ authors = ["Alec Deason <alec50@tinycountry.com>"]
 edition = "2018"
 
 [dependencies]
-ordered-float = "1.0.1"
-regex = "1"
-rand = "*"
-crossbeam = "0.7"
+rand = "0.6"
 
 [dev-dependencies]
-assert_approx_eq = "1.1.0"
-alsa = "*"
 portaudio = "0.6.3"
-rand = "*"
-num = "0.2.0"
+crossbeam = "0.7"

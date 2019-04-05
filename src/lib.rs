@@ -1,5 +1,7 @@
 extern crate rand;
 
+pub mod synth;
+
 use std::hash::{Hash, Hasher};
 use rand::prelude::*;
 
@@ -23,20 +25,12 @@ impl Pitch {
     }
 }
 
+#[derive(Copy, Clone, Debug)]
+pub struct Interval(pub f64);
+
 #[derive(Clone, Debug)]
 pub struct Chord(pub Vec<Pitch>);
 impl Chord {
-    /*
-    pub fn from_root_and_numeral(root: &Pitch, numeral: &str) -> Chord {
-        match numeral {
-            "I" => {
-
-            },
-            _ => panic!(),
-        }
-    }
-    */
-
     pub fn invert(&self) -> Self {
         let mut chord = self.clone();
         if chord.0[0].0 < chord.0[1].0 {
