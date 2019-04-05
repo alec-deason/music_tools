@@ -1,8 +1,8 @@
 use std::f64::consts::PI;
 use std::f64::MAX;
 
-use crate::{Pitch};
-use super::{Voice};
+use super::Voice;
+use crate::Pitch;
 
 pub struct Kick {
     amp: f64,
@@ -31,7 +31,7 @@ impl Voice for Kick {
         } else {
             self.amp * sr(0.75, 0.01, self.since_event)
         };
-        ((90.0 * self.since_onset * 2.0 * PI)).sin() * amp
+        (90.0 * self.since_onset * 2.0 * PI).sin() * amp
     }
 
     fn play_pitch(&mut self, _: &Pitch) {
@@ -80,10 +80,16 @@ impl Voice for AdditiveBell {
         };
 
         if amp > 0.0 {
-            [1.0f64, 2.23, 3.73, 4.81, 5.43, 6.24, 7.35, 8.12, 9.44, 10.21].iter().enumerate().for_each(|(i, m)| {
-                let i = i+1;
-                sample += ((self.pitch.0 as f64 * m * self.since_onset * 2.0 * PI)).sin() * amp
-* (1.0 / 2.0f64.powf(i as f64));
+            [
+                1.0f64, 2.23, 3.73, 4.81, 5.43, 6.24, 7.35, 8.12, 9.44, 10.21,
+            ]
+            .iter()
+            .enumerate()
+            .for_each(|(i, m)| {
+                let i = i + 1;
+                sample += (self.pitch.0 as f64 * m * self.since_onset * 2.0 * PI).sin()
+                    * amp
+                    * (1.0 / 2.0f64.powf(i as f64));
             })
         }
         sample
@@ -108,8 +114,8 @@ fn ads(a: f64, d: f64, s: f64, t: f64) -> f64 {
     if t <= a {
         let m = 1.0 / a;
         m * t
-    } else if t <= a+d {
-        let m = -(1.0-s) / d;
+    } else if t <= a + d {
+        let m = -(1.0 - s) / d;
         let t = t - a;
         1.0 + m * t
     } else {
@@ -117,7 +123,7 @@ fn ads(a: f64, d: f64, s: f64, t: f64) -> f64 {
     }
 }
 
-fn sr(s:f64, r: f64, t: f64) -> f64 {
+fn sr(s: f64, r: f64, t: f64) -> f64 {
     if t <= r {
         let m = -s / r;
         s + m * t
@@ -125,4 +131,3 @@ fn sr(s:f64, r: f64, t: f64) -> f64 {
         0.0
     }
 }
-

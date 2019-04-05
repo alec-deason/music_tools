@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use super::{Pitch};
+use super::Pitch;
 
 pub mod simple_instruments;
 
@@ -18,9 +18,15 @@ pub struct Instrument {
 }
 
 impl Instrument {
-    pub fn new(sample_rate: f64, voice_count: usize, voice_constructor: &Fn() -> Box<dyn Voice>) -> Instrument {
+    pub fn new(
+        sample_rate: f64,
+        voice_count: usize,
+        voice_constructor: &Fn() -> Box<dyn Voice>,
+    ) -> Instrument {
         Instrument {
-            voices: (0..voice_count).map(|_| (voice_constructor(), 100000.0)).collect(),
+            voices: (0..voice_count)
+                .map(|_| (voice_constructor(), 100000.0))
+                .collect(),
             sequence: Vec::new(),
             clock: 0.0,
             sample_rate,
@@ -50,7 +56,7 @@ impl Instrument {
             for (i, other) in self.sequence.iter().enumerate() {
                 if note.onset < other.onset {
                     position = i;
-                    break
+                    break;
                 }
             }
             self.sequence.insert(position, note.clone());
@@ -83,22 +89,32 @@ impl Instrumentation {
     }
 
     pub fn sample(&mut self) -> f64 {
-        self.instruments.values_mut().map(|instrument| instrument.sample()).sum::<f64>() * 0.1
+        self.instruments
+            .values_mut()
+            .map(|instrument| instrument.sample())
+            .sum::<f64>()
+            * 0.1
     }
 
     pub fn schedule_note(&mut self, note: &Note) {
-        self.instruments.get_mut(&note.instrument).unwrap().schedule_note(note);
+        self.instruments
+            .get_mut(&note.instrument)
+            .unwrap()
+            .schedule_note(note);
     }
 
     pub fn exhausted(&self) -> bool {
-        self.instruments.values().all(|instrument| instrument.exhausted())
+        self.instruments
+            .values()
+            .all(|instrument| instrument.exhausted())
     }
 
     pub fn reset(&mut self) {
-        self.instruments.values_mut().for_each(|instrument| instrument.reset())
+        self.instruments
+            .values_mut()
+            .for_each(|instrument| instrument.reset())
     }
 }
-
 
 #[derive(Clone, Debug)]
 pub struct Note {
@@ -108,4 +124,3 @@ pub struct Note {
     pub duration: f64,
     pub amplitude: f64,
 }
-

@@ -1,16 +1,16 @@
 #![feature(non_ascii_idents)]
+extern crate crossbeam;
 extern crate music_tools;
 extern crate portaudio;
 extern crate rand;
-extern crate crossbeam;
 
-use std::sync::Arc;
-use crossbeam::queue::{ArrayQueue};
-use rand::prelude::*;
-use portaudio as pa;
-use music_tools::{Pitch, Scale};
-use music_tools::synth::{Instrument, Note, Instrumentation};
+use crossbeam::queue::ArrayQueue;
 use music_tools::synth::simple_instruments::AdditiveBell;
+use music_tools::synth::{Instrument, Instrumentation, Note};
+use music_tools::{Pitch, Scale};
+use portaudio as pa;
+use rand::prelude::*;
+use std::sync::Arc;
 
 type AudioSample = f32;
 
@@ -18,15 +18,15 @@ const CHANNELS: i32 = 1;
 const FRAMES: u32 = 32;
 const SAMPLE_HZ: f64 = 48_000.0;
 
-
 fn main() -> Result<(), pa::Error> {
-    let base_pitch = Pitch(220.0);
-
     let mut instrumentation = Instrumentation::new();
-    instrumentation.add_instrument(0, Instrument::new(SAMPLE_HZ, 2, &|| Box::new(AdditiveBell::new(1.0))));
+    instrumentation.add_instrument(
+        0,
+        Instrument::new(SAMPLE_HZ, 2, &|| Box::new(AdditiveBell::new(1.0))),
+    );
 
     let sample_buffer = Arc::new(ArrayQueue::new(SAMPLE_HZ as usize * 3));
-    
+
     let callback;
     {
         let sample_buffer = sample_buffer.clone();
@@ -48,12 +48,11 @@ fn main() -> Result<(), pa::Error> {
 
     stream.start()?;
 
-    let semi = 16.0/15.0 - 1.0;
+    let semi = 16.0 / 15.0 - 1.0;
     let whole = semi * 2.0;
     let major_scale = Scale::new(&[whole, whole, semi, whole, whole, whole, semi]);
     let tonic = Pitch(220.0);
     let mut degree = 0;
-
 
     loop {
         let len = sample_buffer.len();
@@ -71,7 +70,7 @@ fn main() -> Result<(), pa::Error> {
                     };
                     clock += 0.3;
 
-                    degree = (degree + thread_rng().gen_range(-1,2)).max(-7).min(14);
+                    degree = (degree + thread_rng().gen_range(-1, 2)).max(-7).min(14);
 
                     instrumentation.schedule_note(&note);
                 }
