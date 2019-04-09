@@ -14,6 +14,7 @@ pub struct Instrument {
     voices: Vec<(Box<dyn Voice>, f64)>,
     sequence: Vec<Note>,
     clock: f64,
+    pub amp: f64,
     sample_rate: f64,
 }
 
@@ -29,6 +30,7 @@ impl Instrument {
                 .collect(),
             sequence: Vec::new(),
             clock: 0.0,
+            amp: 1.0,
             sample_rate,
         }
     }
@@ -47,7 +49,7 @@ impl Instrument {
                 voice.stop();
             }
         }
-        self.voices.iter_mut().map(|v| v.0.sample(delta_time)).sum()
+        self.voices.iter_mut().map(|v| v.0.sample(delta_time)).sum::<f64>() * self.amp
     }
 
     pub fn schedule_note(&mut self, note: &Note) {
@@ -74,7 +76,7 @@ impl Instrument {
 }
 
 pub struct Instrumentation {
-    instruments: HashMap<usize, Instrument>,
+    pub instruments: HashMap<usize, Instrument>,
 }
 
 impl Instrumentation {
